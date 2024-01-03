@@ -21,4 +21,10 @@ test(unify) :-
 	findall(TL, typeof(abstract(x, x + x), TL), TLs),
 	TLs = [fn(int, int)],
 	findall(TA, typeof(apply(abstract(x, x + x), 1), TA), TAs),
-	TAs = [int].
+	TAs = [int],
+	findall(TR, typeof(abstract(f, apply(f, 1) + 1), TR), TRs),
+	TRs = [fn(fn(int, int), int)],
+	findall(TC, typeof(abstract(x, abstract(y, x + y)), TC), TCs),
+	TCs = [fn(int, fn(int, int))],
+	true.
+

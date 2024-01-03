@@ -1,9 +1,12 @@
 # type.pl
 A type checker in Prolog for typed lambda calculi.
 
+**Only 100 lines!**
+
 ## Reference
 
 - [Simply typed lambda calculus](https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus)
+- [System F](https://en.wikipedia.org/wiki/System_F)
 
 ## Influence
 

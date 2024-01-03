@@ -5,10 +5,6 @@
 typeof(X, T) :- calculus(X), unify([], X, T), !.
 generalize(X, G) :- typeof(X, T), typevar(T, L), typeforall(L, T, G), !.
 
-typeforall([], T, T).
-typeforall([A|As], T, forall(A, G)) :- atom(A), typeforall(As, T, G).
-typeforall(_As, T, T).
-
 % Simply Typed Lambda Calculus
 
 %% Syntax
@@ -25,18 +21,20 @@ calculus(=\=(E1, E2)) :- calculus(E1), calculus(E2).
 calculus(X) :- integer(X).
 
 %% Type Substitution
-typesub(A, F, A, F) :- atom(A).
-typesub(A, F, fn(T, R), fn(T1, R1)) :-
-	atom(A), typesub(A, F, T, T1), typesub(A, F, R, R1).
-typesub(A, _F, forall(A, T), forall(A, T)) :- atom(A).
-typesub(A, F, forall(B, T), forall(B, T1)) :-
-	atom(A), typesub(A, F, T, T1).
+typesub(A, F, A, F).
+typesub(A, F, fn(T, R), fn(U, V)) :- typesub(A, F, T, U), typesub(A, F, R, V).
+typesub(A, _F, forall(A, T), forall(A, T)).
+typesub(A, F, forall(B, T), forall(B, T1)) :- typesub(A, F, T, T1).
 
 %% Generalize
 typevar(T, [A|_As]) :- var(T), new_atom(a, A), !, T = A.
 typevar(fn(T, R), As) :- typevar(T, At), typevar(R, Ar), append(At, Ar, As).
 typevar(forall(A, T), As) :- atom(A), typevar(T, As).
 typevar(T, []) :- ground(T).
+
+typeforall([], T, T).
+typeforall([A|As], T, forall(A, G)) :- atom(A), typeforall(As, T, G).
+typeforall(_As, T, T).
 
 % Typing rules
 % https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus#Typing_rules
@@ -52,28 +50,21 @@ unify(Ctx, =:=(E1, E2), bool) :- unify(Ctx, E1, T), unify(Ctx, E2, T).
 unify(Ctx, =\=(E1, E2), bool) :- unify(Ctx, E1, T), unify(Ctx, E2, T).
 
 %% (STLC-3)
-unify(Ctx, lambda(X, T, E), fn(T, R)) :-
-	unify([typeis(X, T)|Ctx], E, R).
+unify(Ctx, lambda(X, T, E), fn(T, R)) :- unify([typeis(X, T)|Ctx], E, R).
 
 %% (STLC-4)
-unify(Ctx, apply(E1, E2), R) :-
-	unify(Ctx, E2, T),
-	unify(Ctx, E1, fn(T, R)).
+unify(Ctx, apply(E1, E2), R) :- unify(Ctx, E2, T), unify(Ctx, E1, fn(T, R)).
 
 % System F
 % https://en.wikipedia.org/wiki/System_F#Typing_rules
 
 %% (SF-1)
-unify(Ctx, at(E, T), F) :-
-	unify(Ctx, E, forall(A, S)),
-	typesub(A, T, S, F).
+unify(Ctx, at(E, T), F) :- unify(Ctx, E, forall(A, S)), typesub(A, T, S, F).
 
 %% (SF-2)
-unify(Ctx, forall(A, E), forall(A, T)) :-
-	unify([typeis(A, type)|Ctx], E, T).
+unify(Ctx, forall(A, E), forall(A, T)) :- unify([typeis(A, type)|Ctx], E, T).
 
 % Tests
-% test(Pass).
 
 tests(Pass) :- findall(T, test(T), Pass).
 

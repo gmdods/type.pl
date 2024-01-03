@@ -1,8 +1,13 @@
 % type.pl
-%! unify(?Ctx:list, +X, -T) is semidet.
 %! typeof(+X, -T) is semidet.
+%! generalize(+X, -G) is semidet.
 
 typeof(X, T) :- calculus(X), unify([], X, T), !.
+generalize(X, G) :- typeof(X, T), typevar(T, L), typeforall(L, T, G), !.
+
+typeforall([], T, T).
+typeforall([A|As], T, forall(A, G)) :- atomic(A), typeforall(As, T, G).
+typeforall(_As, T, T).
 
 % Simply Typed Lambda Calculus
 
@@ -26,6 +31,12 @@ typesub(A, F, fn(T, R), fn(T1, R1)) :-
 typesub(A, _F, forall(A, T), forall(A, T)) :- atomic(A).
 typesub(A, F, forall(B, T), forall(B, T1)) :-
 	atomic(A), typesub(A, F, T, T1).
+
+%% Generalize
+typevar(T, [A|_As]) :- var(T), new_atom(a, A), !, T = A.
+typevar(fn(T, R), As) :- typevar(T, At), typevar(R, Ar), append(At, Ar, As).
+typevar(forall(A, T), As) :- atomic(A), typevar(T, As).
+typevar(T, []) :- ground(T).
 
 % Typing rules
 % https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus#Typing_rules
@@ -82,20 +93,17 @@ test(forall) :-
 	TEs = [fn(A, fn(A, bool))], var(A),
 	findall(TF, typeof(lambda(f, _, apply(f, 1)), TF), TFs),
 	TFs = [fn(fn(int, B), B)], var(B),
+	findall(TG, generalize(lambda(x, _, lambda(y, _, x =:= y)), TG), TGs),
+	TGs = [forall(C, fn(C, fn(C, bool)))], atomic(C),
 	true.
 
 test(systemf) :-
-	church(true, True), church(false, False),
+	True = forall(a, lambda(x, a, lambda(y, a, x))),
+	False = forall(a, lambda(x, a, lambda(y, a, y))),
 	findall(TT, typeof(True, TT), TTs),
-	TTs = [forall(a, fn(a, fn(a, a)))],
-	typeof(True, Bool),
+	TTs = [forall(a, fn(a, fn(a, a)))], [Bool] = TTs,
 	findall(TN, typeof(lambda(x, Bool, lambda(y, Bool,
 			apply(apply(at(x, Bool), y), False))), TN), TNs),
 	TNs = [fn(Bool, fn(Bool, Bool))],
 	true.
-
-% Constants
-
-church(true, forall(a, lambda(x, a, lambda(y, a, x)))).
-church(false, forall(a, lambda(x, a, lambda(y, a, y)))).
 
